@@ -1,0 +1,13 @@
+{
+  "appId": "com.shee.safety",
+  "appName": "Shee",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "plugins": {
+    "SMSInboxReader": {
+      "android": {
+        "name": "com.capacitor.sms.reader.SMSInboxReaderPlugin"
+      }
+    }
+  }
+}

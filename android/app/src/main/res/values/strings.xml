@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Shee</string>
+    <string name="title_activity_main">Shee</string>
+    <string name="package_name">com.shee.safety</string>
+    <string name="custom_url_scheme">com.shee.safety</string>
+</resources>
