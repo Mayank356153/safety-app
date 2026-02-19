@@ -3,6 +3,13 @@
   "appName": "Shee",
   "webDir": "dist",
   "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",  
+    "allowNavigation": [
+      "localhost",
+      "safety-app-server-6p3a.onrender.com"
+    ]
+  },
   "plugins": {
     "SMSInboxReader": {
       "android": {

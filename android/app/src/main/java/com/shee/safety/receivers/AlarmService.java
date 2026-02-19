@@ -7,7 +7,6 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.media.AudioAttributes;
-import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -15,124 +14,80 @@ import android.os.IBinder;
 import android.util.Log;
 import androidx.core.app.NotificationCompat;
 
+import com.shee.safety.utils.VibratorManager;
+
 public class AlarmService extends Service {
     private static final String TAG = "AlarmService";
-    private static final String CHANNEL_ID = "alarm_service_channel";
+    private static final String CHANNEL_ID = "alarm_service";
+    
     private MediaPlayer mediaPlayer;
-
-    @Override
-    public void onCreate() {
-        super.onCreate();
-        Log.d(TAG, "======= AlarmService CREATED =======");
-    }
+    private boolean isRunning = false;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d(TAG, "======= AlarmService STARTED =======");
+        if (isRunning) {
+            Log.d(TAG, "Alarm already running, skipping...");
+            return START_STICKY;
+        }
         
-        // Create notification channel
+        Log.d(TAG, "========================================");
+        Log.d(TAG, "ALARM SERVICE STARTED");
+        Log.d(TAG, "========================================");
+        
+        isRunning = true;
+        
         createNotificationChannel();
+        startForeground(1001, createNotification());
         
-        // Start as foreground service (required for Android 8.0+)
-        Notification notification = createNotification();
-        startForeground(1001, notification);
+        startContinuousAlarm();
+        startContinuousVibration();
         
-        // Start the alarm sound
-        startAlarmSound();
-        
-        return START_STICKY; // Restart if killed
+        return START_STICKY;
     }
 
-    private void createNotificationChannel() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                CHANNEL_ID,
-                "Emergency Alarm Service",
-                NotificationManager.IMPORTANCE_LOW
-            );
-            channel.setDescription("Keeps alarm running");
-            
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            if (manager != null) {
-                manager.createNotificationChannel(channel);
-                Log.d(TAG, "Notification channel created");
-            }
-        }
-    }
-
-    private Notification createNotification() {
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("🚨 Emergency Alarm Active")
-            .setContentText("Alarm is sounding...")
-            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setOngoing(true);
-
-        return builder.build();
-    }
-
-    private void startAlarmSound() {
+    private void startContinuousAlarm() {
         try {
-            Log.d(TAG, "Starting alarm sound...");
-            
-            if (mediaPlayer != null) {
-                mediaPlayer.release();
-                mediaPlayer = null;
-            }
+            if (mediaPlayer == null) {
+                Uri alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+                if (alarmUri == null) {
+                    alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                }
 
-            // Try to get alarm sound
-            Uri alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
-            if (alarmUri == null) {
-                Log.d(TAG, "No alarm sound, trying ringtone");
-                alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
-            }
-            if (alarmUri == null) {
-                Log.d(TAG, "No ringtone, trying notification");
-                alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-            }
+                mediaPlayer = new MediaPlayer();
+                mediaPlayer.setDataSource(this, alarmUri);
 
-            if (alarmUri == null) {
-                Log.e(TAG, "No sound URI found!");
-                return;
-            }
+                AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build();
+                mediaPlayer.setAudioAttributes(audioAttributes);
 
-            Log.d(TAG, "Using sound URI: " + alarmUri);
+                mediaPlayer.setLooping(true);
+                mediaPlayer.setVolume(1.0f, 1.0f);
+                mediaPlayer.prepare();
+                mediaPlayer.start();
 
-            mediaPlayer = new MediaPlayer();
-            mediaPlayer.setDataSource(this, alarmUri);
-            
-            // Set to alarm stream with max volume
-            AudioAttributes audioAttributes = new AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_ALARM)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .build();
-            mediaPlayer.setAudioAttributes(audioAttributes);
-            
-            // Set volume to maximum
-            AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-            if (audioManager != null) {
-                int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM);
-                audioManager.setStreamVolume(AudioManager.STREAM_ALARM, maxVolume, 0);
-                Log.d(TAG, "Set alarm volume to max: " + maxVolume);
+                Log.d(TAG, "✅ Continuous alarm started");
             }
-            
-            mediaPlayer.setLooping(true); // Loop continuously
-            mediaPlayer.prepare();
-            mediaPlayer.start();
-            
-            Log.d(TAG, "✓✓✓ ALARM SOUND PLAYING (LOOPING) ✓✓✓");
-            
         } catch (Exception e) {
-            Log.e(TAG, "Error starting alarm sound", e);
-            e.printStackTrace();
+            Log.e(TAG, "Error starting alarm", e);
         }
+    }
+
+    private void startContinuousVibration() {
+        // Use singleton vibrator manager
+        VibratorManager.getInstance().startVibration(this);
     }
 
     @Override
     public void onDestroy() {
-        super.onDestroy();
-        Log.d(TAG, "======= AlarmService DESTROYED =======");
+        Log.d(TAG, "========================================");
+        Log.d(TAG, "STOPPING ALARM SERVICE");
+        Log.d(TAG, "========================================");
         
+        isRunning = false;
+        
+        // Stop media player
         if (mediaPlayer != null) {
             try {
                 if (mediaPlayer.isPlaying()) {
@@ -140,11 +95,40 @@ public class AlarmService extends Service {
                 }
                 mediaPlayer.release();
                 mediaPlayer = null;
-                Log.d(TAG, "MediaPlayer stopped and released");
+                Log.d(TAG, "✅ Media player stopped");
             } catch (Exception e) {
-                Log.e(TAG, "Error stopping MediaPlayer", e);
+                Log.e(TAG, "Error stopping media player", e);
             }
         }
+        
+        // Stop vibration using singleton manager
+        VibratorManager.getInstance().stopVibration();
+        
+        Log.d(TAG, "========================================");
+        
+        super.onDestroy();
+    }
+
+    private void createNotificationChannel() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                CHANNEL_ID,
+                "Emergency Alarm",
+                NotificationManager.IMPORTANCE_HIGH
+            );
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            manager.createNotificationChannel(channel);
+        }
+    }
+
+    private Notification createNotification() {
+        return new NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("🚨 Emergency Alarm Active")
+            .setContentText("Tap to stop alarm")
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setOngoing(true)
+            .build();
     }
 
     @Override

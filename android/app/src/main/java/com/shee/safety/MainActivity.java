@@ -76,7 +76,6 @@
 //         }
 //     }
 // }
-
 package com.shee.safety;
 
 import android.content.Intent;
@@ -89,6 +88,8 @@ import com.shee.safety.plugins.SMSReaderPlugin;
 import com.shee.safety.plugins.SMSReceiverPlugin;
 import com.shee.safety.plugins.EmergencyAlertPlugin;
 import com.shee.safety.plugins.PermissionsPlugin;
+import com.shee.safety.plugins.PreferencesPlugin;
+import com.shee.safety.plugins.LocationPlugin;  // ADD THIS
 
 public class MainActivity extends BridgeActivity {
     private static final String TAG = "MainActivity";
@@ -100,6 +101,8 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(SMSReceiverPlugin.class);
         registerPlugin(EmergencyAlertPlugin.class);
         registerPlugin(PermissionsPlugin.class);
+        registerPlugin(PreferencesPlugin.class);
+        registerPlugin(LocationPlugin.class);  // ADD THIS
         
         super.onCreate(savedInstanceState);
         

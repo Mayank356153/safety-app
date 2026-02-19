@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "862329423104",
+    "project_id": "shee-df367",
+    "storage_bucket": "shee-df367.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:862329423104:android:25b4cb20839f34554d1fe5",
+        "android_client_info": {
+          "package_name": "co.she.she"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA7HbSP_wD4qRR1kqLh4x5wtRQpTCsL7lA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:862329423104:android:f428952da9f1dd014d1fe5",
+        "android_client_info": {
+          "package_name": "com.shee.safety"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA7HbSP_wD4qRR1kqLh4x5wtRQpTCsL7lA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

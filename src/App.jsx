@@ -150,18 +150,66 @@
 // }
 
 // export default App;
+
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect,useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { App as CapacitorApp } from '@capacitor/app';
 import EmergencyAlertPage from './pages/EmergencyAlert';
 import MapPage from './pages/Map';
 import SMSMonitor from './pages/SMSMonitor';
-// ... other imports
-
+import Registration from './pages/Registration';
+import DebugPanel from './pages/DebugPanel';
+import LocationTracker from './plugins/location-tracker';
+import AppPreferences from './plugins/app-preferences';
+import { Capacitor } from '@capacitor/core';
+import ServiceStatus from './pages/ServiceStatus';
 function AppContent() {
   const navigate = useNavigate();
+   const [isRegistered, setIsRegistered] = useState(false);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    const userPhone = localStorage.getItem('userPhone');
+    setIsRegistered(!!userPhone);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    // Auto-start location service when app opens
+    if (Capacitor.getPlatform() === 'android') {
+      autoStartLocationService();
+    }
+  }, []);
+
+  const autoStartLocationService = async () => {
+    try {
+      const userId = localStorage.getItem('userId');
+      const serverUrl = localStorage.getItem('serverUrl');
+
+      if (userId && serverUrl) {
+        console.log('Auto-starting location service...');
+        
+        // Save settings
+        await AppPreferences.saveLocationSettings({ userId, serverUrl });
+        
+        // Check if already running
+        const status = await LocationTracker.isServiceRunning();
+        
+        if (!status.isRunning) {
+          console.log('Service not running, starting...');
+          await LocationTracker.startLocationUpdates();
+          console.log('✅ Location service started');
+        } else {
+          console.log('✅ Service already running');
+        }
+      }
+    } catch (error) {
+      console.error('Error auto-starting service:', error);
+    }
+  };
+
+  
   useEffect(() => {
     // Listen for app launch from notification
     CapacitorApp.addListener('appUrlOpen', (data) => {
@@ -170,13 +218,30 @@ function AppContent() {
       }
     });
   }, [navigate]);
+  if (loading) {
+    return <div style={{ padding: 20 }}>Loading...</div>;
+  }
 
   return (
     <Routes>
-      <Route path="/" element={<SMSMonitor />} />
+      {/* <Route path="/" element={<SMSMonitor />} />
+      <Route path="/emergency-alert" element={<EmergencyAlertPage />} />
+      <Route path="/map" element={<MapPage />} /> */}
+      {/* Add other routes */}
+      {!isRegistered ? (
+        <>
+          <Route path="/register" element={<Registration />} />
+          <Route path="/" element={<Registration />} />
+        </>
+      ) : (
+        <>
+         <Route path="/" element={<SMSMonitor />} />
+         <Route path="/service-status" element={<ServiceStatus />} />
       <Route path="/emergency-alert" element={<EmergencyAlertPage />} />
       <Route path="/map" element={<MapPage />} />
-      {/* Add other routes */}
+      <Route path="/debug" element={<DebugPanel />} />
+        </>
+      )}
     </Routes>
   );
 }
